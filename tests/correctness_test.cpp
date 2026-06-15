@@ -74,6 +74,29 @@ void test_mpmc_constructor_validation() {
     assert(rejected_non_power_of_two);
 }
 
+void test_mutex_queue_exact_capacity() {
+    lfqueue::MutexQueue<int> queue(3);
+    int value = 0;
+
+    assert(queue.capacity() == 3);
+    assert(queue.push(1));
+    assert(queue.push(2));
+    assert(queue.push(3));
+    assert(!queue.push(4));
+
+    assert(queue.pop(value));
+    assert(value == 1);
+    assert(queue.push(4));
+
+    assert(queue.pop(value));
+    assert(value == 2);
+    assert(queue.pop(value));
+    assert(value == 3);
+    assert(queue.pop(value));
+    assert(value == 4);
+    assert(!queue.pop(value));
+}
+
 template <template <typename> class Queue>
 void test_move_only_values() {
     Queue<std::unique_ptr<int>> queue(2);
@@ -100,4 +123,5 @@ int main() {
     test_basic_queue_behavior<lfqueue::MPMCQueue>();
     test_basic_queue_behavior<lfqueue::MutexQueue>();
     test_mpmc_constructor_validation();
+    test_mutex_queue_exact_capacity();
 }
