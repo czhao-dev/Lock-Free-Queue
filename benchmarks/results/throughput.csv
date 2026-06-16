@@ -1,0 +1,10 @@
+# hardware_concurrency=8
+threads,queue,total_ops,seconds,mops_per_sec
+1+1,lfqueue,10000000,0.175,57.2
+1+1,mutex,10000000,0.219,45.7
+2+2,lfqueue,10000000,0.705,14.2
+2+2,mutex,10000000,0.384,26.0
+4+4,lfqueue,10000000,1.982,5.0
+4+4,mutex,10000000,0.555,18.0
+8+8,lfqueue,10000000,2.969,3.4
+8+8,mutex,10000000,0.577,17.3

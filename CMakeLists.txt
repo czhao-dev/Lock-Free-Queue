@@ -16,6 +16,8 @@ else()
     target_compile_options(lfqueue INTERFACE -Wall -Wextra -Wpedantic)
 endif()
 
+find_package(Threads REQUIRED)
+
 include(CTest)
 
 if(BUILD_TESTING)

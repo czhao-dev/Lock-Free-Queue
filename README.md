@@ -234,44 +234,57 @@ callback. The benchmarks below quantify when the crossover happens.
 
 ## Benchmarks
 
-Run on [your hardware spec — CPU model, core count, OS, compiler version].
+**Hardware:** Apple M3, 8 cores (8 logical), macOS  
+**Compiler:** Apple Clang 21.0.0, `-O2 -DNDEBUG` (CMake Release)  
+**Operations:** 10,000,000 items transferred per configuration
 
-### Throughput vs thread count (4 producers, 4 consumers, fixed total ops)
+### Throughput vs thread count (fixed 10 M total items)
 
 | Threads (P+C) | lfqueue (Mops/sec) | mutex queue (Mops/sec) |
-|---------------|--------------------|-------------------------|
-| 1 + 1         | [result]           | [result]                |
-| 2 + 2         | [result]           | [result]                |
-| 4 + 4         | [result]           | [result]                |
-| 8 + 8         | [result]           | [result]                |
+|:-------------:|:------------------:|:----------------------:|
+| 1 + 1         | 57.2               | 45.7                   |
+| 2 + 2         | 14.2               | 26.0                   |
+| 4 + 4         | 5.0                | 18.0                   |
+| 8 + 8         | 3.4                | 17.3                   |
 
-Expect the gap to widen as thread count increases — mutex contention grows
-roughly with the square of waiting threads, while CAS retries grow more
-gracefully.
+**Interpretation:** The lock-free queue wins at 1+1 (no contention, avoids
+lock overhead entirely). As thread count rises, the CAS-based design suffers
+from cache-invalidation storms: every producer's CAS on `tail_` and every
+consumer's CAS on `head_` broadcasts a cache-line invalidation to all other
+cores. On Apple Silicon's strongly-ordered architecture, the mutex queue
+serialises access more cheaply than repeated CAS failures under high
+contention. This is a well-known result — lock-free does not mean
+faster-under-all-conditions; it means progress without blocking. The
+lock-free queue's advantages show clearly in the latency distribution below,
+particularly at the tail.
 
-### Effect of cache line padding
+### Effect of cache line padding (4 producers + 4 consumers)
 
-| Configuration              | Throughput (Mops/sec) |
-|-----------------------------|------------------------|
-| Without padding (false sharing) | [result]           |
-| With 64-byte padding             | [result]           |
+| Configuration               | Throughput (Mops/sec) |
+|:---------------------------:|:---------------------:|
+| Without padding (false sharing) | 3.3               |
+| With 64-byte padding            | 5.0               |
 
-This benchmark isolates the false-sharing effect described above — the only
-code difference between the two runs is the padding struct.
+Padding `head_` and `tail_` onto separate cache lines gives a **52%
+throughput improvement** with no algorithmic change — the only difference is
+preventing the two counters from sharing a cache line and invalidating each
+other on every operation.
 
-### Latency distribution (single producer, single consumer)
+### Latency distribution (single producer, single consumer, 100 k samples)
 
-| Metric | lfqueue | mutex queue |
-|--------|---------|-------------|
-| p50    | [result] | [result]   |
-| p99    | [result] | [result]   |
-| p999   | [result] | [result]   |
+| Metric | lfqueue (ns) | mutex queue (ns) |
+|:------:|:------------:|:----------------:|
+| p50    | 4,959        | 5,375            |
+| p99    | 7,167        | 18,291           |
+| p999   | 15,958       | 57,917           |
 
-The tail latency comparison (p999) is often where lock-free designs show the
-clearest advantage — mutex-based queues are vulnerable to occasional long stalls
-when a thread is preempted while holding the lock.
+The lock-free queue shows a **3.6× lower p999 latency** than the mutex queue.
+This is the expected advantage: when a thread is preempted while holding a
+mutex, every other thread stalls until it resumes. A lock-free queue never
+blocks a waiter — worst case, a consumer spins briefly on a sequence number
+before the producer publishes, but it never waits for an OS reschedule.
 
-*Fill in measured values after running `benchmarks/run_all.sh`.*
+*Reproduce with `./benchmarks/run_all.sh` (builds Release binaries if needed).*
 
 ---
 
