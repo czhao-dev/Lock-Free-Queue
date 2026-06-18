@@ -1,5 +1,11 @@
 # lfqueue — Lock-Free Multi-Producer Multi-Consumer Queue
 
+![C++](https://img.shields.io/badge/C%2B%2B-17-00599C.svg?logo=cplusplus)
+![CMake](https://img.shields.io/badge/CMake-3.16%2B-064F8C.svg?logo=cmake)
+![ThreadSanitizer](https://img.shields.io/badge/ThreadSanitizer-clean-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)
+![License](https://img.shields.io/badge/License-MIT-yellow.svg)
+
 A bounded, lock-free MPMC (multi-producer multi-consumer) queue implemented in
 C++ using atomic operations and explicit memory ordering. Benchmarked against a
 mutex-protected queue across varying thread counts and contention levels, with
@@ -355,6 +361,37 @@ luck" race that would fail on different hardware.
 exhaustively explore thread interleavings for small test cases, providing much
 stronger guarantees than running many random iterations. Mentioned here as a
 stretch goal for demonstrating depth.
+
+### Results
+
+```
+$ ctest --test-dir build-release --output-on-failure
+Test project lfqueue/build-release
+    Start 1: correctness_test
+1/1 Test #1: correctness_test .................   Passed    0.73 sec
+100% tests passed, 0 tests failed out of 1
+```
+
+The `correctness_test` binary covers, in order: empty/full boundary
+conditions, wraparound ordering, zero-capacity rejection, constructor
+validation, move-only value types, and exact-capacity behavior for the mutex
+baseline — followed by six concurrent stress configurations run against
+**both** `MPMCQueue` and `MutexQueue` (1+1, 2+2, 4+4, 8+8, 1 producer/4
+consumers, 4 producers/1 consumer), each verifying every pushed value is
+received exactly once with no drops or duplicates.
+
+```
+$ cmake -B build-tsan -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-fsanitize=thread"
+$ cmake --build build-tsan
+$ ./build-tsan/tests/correctness_test
+$ echo $?
+0
+```
+
+ThreadSanitizer reports **zero data races** across every stress configuration
+— the release/acquire pairing on the sequence number is sufficient to make
+the producer/consumer handoff safe under TSan's race detector, not merely
+"correct by luck" on a specific architecture's memory model.
 
 ---
 
