@@ -32,6 +32,48 @@ Publisher ──────── clone freely across threads (O(1) Arc increme
 Subscriber ──────── auto-deregisters its channel on drop
 ```
 
+```mermaid
+graph TD
+    subgraph Producers["Producers (N threads)"]
+        P1["Publisher&lt;T&gt; clone"]
+        P2["Publisher&lt;T&gt; clone"]
+        P3["Publisher&lt;T&gt; clone"]
+    end
+
+    subgraph ControlPlane["BrokerEngine&lt;T&gt;  —  cold control plane"]
+        BE["RwLock&lt;HashMap&lt;String, Arc&lt;TopicStream&gt;&gt;&gt;"]
+    end
+
+    subgraph Topic["TopicStream&lt;T&gt;  —  named route"]
+        TS["BroadcastQueue&lt;T&gt;"]
+    end
+
+    subgraph DataPlane["Hot data plane  —  lock-free"]
+        Q1["MpmcQueue&lt;T&gt;\n(Subscriber A)"]
+        Q2["MpmcQueue&lt;T&gt;\n(Subscriber B)"]
+        Q3["MpmcQueue&lt;T&gt;\n(Subscriber C)"]
+    end
+
+    subgraph Consumers["Consumers"]
+        S1["Subscriber A"]
+        S2["Subscriber B"]
+        S3["Subscriber C"]
+    end
+
+    P1 & P2 & P3 -->|"publish(Arc&lt;T&gt;)"| TS
+    BE -->|"Arc clone on subscribe"| TS
+    TS -->|"fan-out\n(Arc ptr copy)"| Q1 & Q2 & Q3
+    Q1 -->|"try_recv()"| S1
+    Q2 -->|"try_recv()"| S2
+    Q3 -->|"try_recv()"| S3
+
+    style ControlPlane fill:#2d3748,stroke:#718096,color:#e2e8f0
+    style DataPlane fill:#1a365d,stroke:#4299e1,color:#e2e8f0
+    style Producers fill:#1c3a2a,stroke:#48bb78,color:#e2e8f0
+    style Consumers fill:#3d1f1f,stroke:#fc8181,color:#e2e8f0
+    style Topic fill:#2d2a1f,stroke:#ecc94b,color:#e2e8f0
+```
+
 - **Topic Routing Layer** — a `RwLock<HashMap>` associates string-named routes
   (e.g. `"telemetry.ingress"`) to isolated `TopicStream` pipelines.  Topic
   creation is a cold-path operation; the hot publish/consume data plane is
