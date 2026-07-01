@@ -1,5 +1,5 @@
-#include "lfqueue/mpmc_queue.hpp"
-#include "lfqueue/mutex_queue.hpp"
+#include "fxmatch/mpmc_queue.hpp"
+#include "fxmatch/mutex_queue.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -61,10 +61,10 @@ int main() {
         long ops = kTotal / N;
         long total = static_cast<long>(N) * ops;
 
-        double lfq_mops  = run_throughput<lfqueue::MPMCQueue<int>>(N, N, ops);
-        double mtx_mops  = run_throughput<lfqueue::MutexQueue<int>>(N, N, ops);
+        double lfq_mops  = run_throughput<fxmatch::MPMCQueue<int>>(N, N, ops);
+        double mtx_mops  = run_throughput<fxmatch::MutexQueue<int>>(N, N, ops);
 
-        std::printf("%d+%d,lfqueue,%ld,%.3f,%.1f\n",
+        std::printf("%d+%d,fxmatch_mpmc,%ld,%.3f,%.1f\n",
                     N, N, total, total / (lfq_mops * 1e6), lfq_mops);
         std::printf("%d+%d,mutex,%ld,%.3f,%.1f\n",
                     N, N, total, total / (mtx_mops * 1e6), mtx_mops);

@@ -1,5 +1,5 @@
-#include "lfqueue/mpmc_queue.hpp"
-#include "lfqueue/mutex_queue.hpp"
+#include "fxmatch/mpmc_queue.hpp"
+#include "fxmatch/mutex_queue.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -76,7 +76,7 @@ void test_rejects_zero_capacity() {
 void test_mpmc_constructor_validation() {
     bool rejected_non_power_of_two = false;
     try {
-        lfqueue::MPMCQueue<int> queue(3);
+        fxmatch::MPMCQueue<int> queue(3);
     } catch (const std::invalid_argument&) {
         rejected_non_power_of_two = true;
     }
@@ -84,7 +84,7 @@ void test_mpmc_constructor_validation() {
 }
 
 void test_mutex_queue_exact_capacity() {
-    lfqueue::MutexQueue<int> queue(3);
+    fxmatch::MutexQueue<int> queue(3);
     int value = 0;
 
     assert(queue.capacity() == 3);
@@ -197,10 +197,10 @@ void test_concurrent_stress() {
 } // namespace
 
 int main() {
-    test_basic_queue_behavior<lfqueue::MPMCQueue>();
-    test_basic_queue_behavior<lfqueue::MutexQueue>();
+    test_basic_queue_behavior<fxmatch::MPMCQueue>();
+    test_basic_queue_behavior<fxmatch::MutexQueue>();
     test_mpmc_constructor_validation();
     test_mutex_queue_exact_capacity();
-    test_concurrent_stress<lfqueue::MPMCQueue>();
-    test_concurrent_stress<lfqueue::MutexQueue>();
+    test_concurrent_stress<fxmatch::MPMCQueue>();
+    test_concurrent_stress<fxmatch::MutexQueue>();
 }

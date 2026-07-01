@@ -1,4 +1,4 @@
-#include "lfqueue/mpmc_queue.hpp"
+#include "fxmatch/mpmc_queue.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -164,7 +164,7 @@ int main() {
     long total = static_cast<long>(P) * ops;
 
     double nopad_mops = run_throughput<NoPadMPMCQueue<int>>(P, C, ops);
-    double pad_mops   = run_throughput<lfqueue::MPMCQueue<int>>(P, C, ops);
+    double pad_mops   = run_throughput<fxmatch::MPMCQueue<int>>(P, C, ops);
 
     std::puts("configuration,total_ops,seconds,mops_per_sec");
     std::printf("without_padding,%ld,%.3f,%.1f\n",

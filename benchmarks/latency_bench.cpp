@@ -1,5 +1,5 @@
-#include "lfqueue/mpmc_queue.hpp"
-#include "lfqueue/mutex_queue.hpp"
+#include "fxmatch/mpmc_queue.hpp"
+#include "fxmatch/mutex_queue.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -67,7 +67,7 @@ int main() {
     constexpr int kCapacity = 64;
 
     std::puts("queue,p50_ns,p99_ns,p999_ns");
-    run_latency<lfqueue::MPMCQueue<Item>>("lfqueue", kSamples, kCapacity);
-    run_latency<lfqueue::MutexQueue<Item>>("mutex",   kSamples, kCapacity);
+    run_latency<fxmatch::MPMCQueue<Item>>("fxmatch_mpmc", kSamples, kCapacity);
+    run_latency<fxmatch::MutexQueue<Item>>("mutex",       kSamples, kCapacity);
     return 0;
 }
